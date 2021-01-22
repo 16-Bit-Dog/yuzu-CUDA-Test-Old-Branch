@@ -51,6 +51,8 @@ void ConfigureAudio::SetConfiguration() {
 
     ui->toggle_audio_stretching->setChecked(Settings::values.enable_audio_stretching.GetValue());
 
+    ui->toggle_CUDA_audio->setChecked(Settings::values.enable_CUDA_audio.GetValue());
+    
     if (!Settings::IsConfiguringGlobal()) {
         if (Settings::values.volume.UsingGlobal()) {
             ui->volume_combo_box->setCurrentIndex(0);
@@ -112,6 +114,12 @@ void ConfigureAudio::ApplyConfiguration() {
             Settings::values.enable_audio_stretching.SetValue(
                 ui->toggle_audio_stretching->isChecked());
         }
+        
+        if (Settings::values.enable_CUDA_audio.UsingGlobal()) {
+            Settings::values.enable_CUDA_audio.SetValue(
+                ui->toggle_CUDA_audio->isChecked());
+        }
+        
         if (Settings::values.volume.UsingGlobal()) {
             Settings::values.volume.SetValue(
                 static_cast<float>(ui->volume_slider->sliderPosition()) /
@@ -121,6 +129,10 @@ void ConfigureAudio::ApplyConfiguration() {
         ConfigurationShared::ApplyPerGameSetting(&Settings::values.enable_audio_stretching,
                                                  ui->toggle_audio_stretching,
                                                  enable_audio_stretching);
+        ConfigurationShared::ApplyPerGameSetting(&Settings::values.enable_CUDA_audio,
+                                                 ui->toggle_CUDA_audio,
+                                                 enable_CUDA_audio);
+        
         if (ui->volume_combo_box->currentIndex() == 0) {
             Settings::values.volume.SetGlobal(true);
         } else {
@@ -169,13 +181,20 @@ void ConfigureAudio::SetupPerGameUI() {
         ui->volume_slider->setEnabled(Settings::values.volume.UsingGlobal());
         ui->toggle_audio_stretching->setEnabled(
             Settings::values.enable_audio_stretching.UsingGlobal());
-
+        ui->toggle_CUDA_audio->setEnabled(
+            Settings::values.enable_CUDA_audio.UsingGlobal());
+        
         return;
     }
 
     ConfigurationShared::SetColoredTristate(ui->toggle_audio_stretching,
                                             Settings::values.enable_audio_stretching,
                                             enable_audio_stretching);
+    
+    ConfigurationShared::SetColoredTristate(ui->toggle_CUDA_audio,
+                                            Settings::values.enable_CUDA_audio,
+                                            enable_CUDA_audio);
+    
     connect(ui->volume_combo_box, qOverload<int>(&QComboBox::activated), this, [this](int index) {
         ui->volume_slider->setEnabled(index == 1);
         ConfigurationShared::SetHighlight(ui->volume_layout, index == 1);
