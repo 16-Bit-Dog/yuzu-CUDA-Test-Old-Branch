@@ -32,16 +32,15 @@
        </layout>
       </item>
       <item>
-       <item>
-         <widget class="QCheckBox" name="toggle_CUDA_audio">
-           <property name="toolTip">
-             <string>Some games may produce better results, some may produce worse. This is Nvidia only (unknown supported versions); Very experimental (audio is expected to be inaccurate) </string>
+        <widget class="QCheckBox" name="toggle_CUDA_audio">
+          <property name="toolTip">
+            <string>Some games may produce better results, some may produce worse. This is Nvidia only (unknown supported versions); Very experimental (audio is expected to be inaccurate) </string>
            </property>
            <property name="text">
-             <string>Enable CUDA for audio</string>
+            <string>Enable CUDA for audio</string>
            </property>
          </widget>
-       </item>      
+      </item>      
       <item>      
        <widget class="QCheckBox" name="toggle_audio_stretching">
         <property name="toolTip">
