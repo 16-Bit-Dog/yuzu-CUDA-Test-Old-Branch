@@ -111,6 +111,8 @@ struct Values {
     std::string audio_device_id;
     std::string sink_id;
     bool audio_muted;
+    
+    Setting<bool> enable_CUDA_audio;
     Setting<bool> enable_audio_stretching;
     Setting<float> volume;
 
