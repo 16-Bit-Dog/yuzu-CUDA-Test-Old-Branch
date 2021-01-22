@@ -32,6 +32,16 @@
        </layout>
       </item>
       <item>
+       <item>
+         <widget class="QCheckBox" name="toggle_CUDA_audio">
+           <property name="toolTip">
+             <string>Some games may produce better results, some may produce worse. This is Nvidia only (unknown supported versions); Very experimental (audio is expected to be inaccurate) </string>
+           </property>
+           <property name="text">
+             <string>Enable CUDA for audio</string>
+           </property>
+         </widget>
+       </item>      
        <widget class="QCheckBox" name="toggle_audio_stretching">
         <property name="toolTip">
          <string>This post-processing effect adjusts audio speed to match emulation speed and helps prevent audio stutter. This however increases audio latency.</string>
