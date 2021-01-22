@@ -13,6 +13,13 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 
+#include "audio_core/sink.h"
+#include "audio_core/sink_details.h"
+#include "core/core.h"
+#include "core/settings.h"
+
+extern "C" void ResampleCuda(std::size_t sample_count, s32* fraction, s32* output, const s32* input,
+                             s32 pitch, const std::array<s16, 512> lut);
 namespace AudioCore {
 
 constexpr std::array<s16, 512> curve_lut0{
@@ -199,6 +206,7 @@ std::vector<s16> Interpolate(InterpolationState& state, std::vector<s16> input, 
 }
 
 void Resample(s32* output, const s32* input, s32 pitch, s32& fraction, std::size_t sample_count) {
+
     const std::array<s16, 512>& lut = [pitch] {
         if (pitch > 0xaaaa) {
             return curve_lut0;
@@ -209,25 +217,35 @@ void Resample(s32* output, const s32* input, s32 pitch, s32& fraction, std::size
         return curve_lut2;
     }();
 
-    std::size_t index{};
+    if (Settings::values.enable_CUDA_audio.GetValue() == true) {
+
+        ResampleCuda(sample_count, &fraction, output, input, pitch, lut);
+
+    } else {
+    
+        std::size_t index = {};
 
     for (std::size_t i = 0; i < sample_count; i++) {
-        const std::size_t lut_index{(static_cast<std::size_t>(fraction) >> 8) * 4};
-        const auto l0 = lut[lut_index + 0];
-        const auto l1 = lut[lut_index + 1];
-        const auto l2 = lut[lut_index + 2];
-        const auto l3 = lut[lut_index + 3];
+            const std::size_t lut_index{(static_cast<std::size_t>(fraction) >> 8) * 4};
+            const auto l0 = lut[lut_index + 0];
+            const auto l1 = lut[lut_index + 1];
+            const auto l2 = lut[lut_index + 2];
+            const auto l3 = lut[lut_index + 3];
 
-        const auto s0 = static_cast<s32>(input[index + 0]);
-        const auto s1 = static_cast<s32>(input[index + 1]);
-        const auto s2 = static_cast<s32>(input[index + 2]);
-        const auto s3 = static_cast<s32>(input[index + 3]);
+            const auto s0 = static_cast<s32>(input[index]);
+            const auto s1 = static_cast<s32>(input[index + 1]);
+            const auto s2 = static_cast<s32>(input[index + 2]);
+            const auto s3 = static_cast<s32>(input[index + 3]);
 
-        output[i] = (l0 * s0 + l1 * s1 + l2 * s2 + l3 * s3) >> 15;
-        fraction += pitch;
-        index += (fraction >> 15);
-        fraction &= 0x7fff;
+            output[i] = (l0 * s0 + l1 * s1 + l2 * s2 + l3 * s3) >> 15;
+            fraction += pitch;
+            index += (fraction >> 15);
+            fraction &= 0x7fff;
+            
     }
+
+    }
+
 }
 
 } // namespace AudioCore
