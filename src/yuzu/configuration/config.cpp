@@ -1154,6 +1154,9 @@ void Config::SaveAudioValues() {
                      QString::fromStdString(Settings::values.audio_device_id),
                      QStringLiteral("auto"));
     }
+    
+    WriteSettingGlobal(QStringLiteral("enable_CUDA_audio"),
+                       Settings::values.enable_CUDA_audio, false);
     WriteSettingGlobal(QStringLiteral("enable_audio_stretching"),
                        Settings::values.enable_audio_stretching, true);
     WriteSettingGlobal(QStringLiteral("volume"), Settings::values.volume, 1.0f);
