@@ -492,6 +492,9 @@ void Config::ReadAudioValues() {
                 .toString()
                 .toStdString();
     }
+    
+    ReadSettingGlobal(Settings::values.enable_CUDA_audio,
+                      QStringLiteral("enable_CUDA_audio"), true);
     ReadSettingGlobal(Settings::values.enable_audio_stretching,
                       QStringLiteral("enable_audio_stretching"), true);
     ReadSettingGlobal(Settings::values.volume, QStringLiteral("volume"), 1);
