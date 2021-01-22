@@ -1,3 +1,9 @@
+enable_language(CUDA)
+
+set(CMAKE_CUDA_FLAGS "-gencode arch=compute_35,code=sm_35 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_53,code=sm_53 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_62,code=sm_62 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_72,code=sm_72 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86")
+
+set(CUDA_64_BIT_DEVICE_CODE ON CACHE STRING "Compile device code in 64 bit mode" FORCE) 
+
 # Enable modules to include each other's files
 include_directories(.)
 
@@ -31,7 +37,7 @@ if (MSVC)
     # /Zc:externConstexpr - Allow extern constexpr variables to have external linkage, like the standard mandates
     # /Zc:inline          - Let codegen omit inline functions in object files
     # /Zc:throwingNew     - Let codegen assume `operator new` (without std::nothrow) will never return null
-    add_compile_options(
+    set(CMAKE_CXX_FLAGS "
         /MP
         /Zi
         /Zo
@@ -43,26 +49,25 @@ if (MSVC)
         /Zc:inline
         /Zc:throwingNew
 
-        # Warnings
         /W3
-        /we4062 # enumerator 'identifier' in a switch of enum 'enumeration' is not handled
-        /we4101 # 'identifier': unreferenced local variable
-        /we4265 # 'class': class has virtual functions, but destructor is not virtual
-        /we4388 # signed/unsigned mismatch
-        /we4547 # 'operator' : operator before comma has no effect; expected operator with side-effect
-        /we4549 # 'operator1': operator before comma has no effect; did you intend 'operator2'?
-        /we4555 # Expression has no effect; expected expression with side-effect
-        /we4834 # Discarding return value of function with 'nodiscard' attribute
-        /we5038 # data member 'member1' will be initialized after data member 'member2'
-    )
+        /we4062 
+        /we4101 
+        /we4265 
+        /we4388 
+        /we4547 
+        /we4549 
+        /we4555 
+        /we4834 
+        /we5038 
+    ")
 
     # /GS- - No stack buffer overflow checks
-    add_compile_options("$<$<CONFIG:Release>:/GS->")
+    set(CMAKE_CXX_FLAGS_RELEASE "$<$<CONFIG:Release>:/GS->")
 
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG   "/DEBUG /MANIFEST:NO" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG /MANIFEST:NO /INCREMENTAL:NO /OPT:REF,ICF" CACHE STRING "" FORCE)
 else()
-    add_compile_options(
+    set(CMAKE_CXX_FLAGS "
         -Wall
         -Werror=implicit-fallthrough
         -Werror=missing-declarations
@@ -77,20 +82,20 @@ else()
         -Wno-attributes
         -Wno-invalid-offsetof
         -Wno-unused-parameter
-    )
+    ")
 
     # TODO: Remove when we update to a GCC compiler that enables this
     #       by default (i.e. GCC 10 or newer).
     if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-        add_compile_options(-fconcepts)
+        set(CMAKE_CXX_FLAGS "-fconcepts")
     endif()
 
     if (ARCHITECTURE_x86_64)
-        add_compile_options("-mcx16")
+        set(CMAKE_CXX_FLAGS "-mcx16")
     endif()
 
     if (APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-        add_compile_options("-stdlib=libc++")
+        set(CMAKE_CXX_FLAGS "-stdlib=libc++")
     endif()
 
     # Set file offset size to 64 bits.
@@ -107,7 +112,7 @@ else()
 
         if (MINGW_STATIC_BUILD)
             add_definitions(-DQT_STATICPLUGIN)
-            add_compile_options("-static")
+            set(CMAKE_CXX_FLAGS "-static")
         endif()
     endif()
 
