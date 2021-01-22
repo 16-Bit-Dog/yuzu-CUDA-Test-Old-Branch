@@ -3,6 +3,7 @@ add_library(audio_core STATIC
     algorithm/filter.h
     algorithm/interpolate.cpp
     algorithm/interpolate.h
+    algorithm/ResampleCuda.cu
     audio_out.cpp
     audio_out.h
     audio_renderer.cpp
