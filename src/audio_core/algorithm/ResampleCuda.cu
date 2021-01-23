@@ -19,32 +19,32 @@ __constant__ s16 lutTd[512];
 
 __global__ void ResampleKernel(s32* output, s32* fraction) {
 
-    std::size_t i = threadIdx.x;
+    std::size_t i = threadIdx.x*blockIdx.x*blockDim.x;
         
     const std::size_t lut_index{ (static_cast<std::size_t>(fraction[i + 1]) >> 8) * 4 }; //fraction is s32, lut_index is size_t
 
 
-    const s16 l0 = lutTd[lut_index + 0]; //faster this way
+    const s16 l0 = lutTd[lut_index]; //faster this way - GPU is not CPU, and adding 0 from what I gather is slower...
     const s16 l1 = lutTd[lut_index + 1];
     const s16 l2 = lutTd[lut_index + 2];
     const s16 l3 = lutTd[lut_index + 3];
 
-    const s32 s0 = fraction[(fraction[i + fraction[0] + 1] + 0 + fraction[0] * 2 + 1)];
-    const s32 s1 = fraction[(fraction[i + fraction[0] + 1] + 0 + fraction[0] * 2 + 2)];
-    const s32 s2 = fraction[(fraction[i + fraction[0] + 1] + 0 + fraction[0] * 2 + 3)];
-    const s32 s3 = fraction[(fraction[i + fraction[0] + 1] + 0 + fraction[0] * 2 + 4)];
+    const s32 s0 = fraction[(fraction[i + fraction[0] + 1] + fraction[0] * 2 + 1)];
+    const s32 s1 = fraction[(fraction[i + fraction[0] + 1] + fraction[0] * 2 + 2)];
+    const s32 s2 = fraction[(fraction[i + fraction[0] + 1] + fraction[0] * 2 + 3)];
+    const s32 s3 = fraction[(fraction[i + fraction[0] + 1] + fraction[0] * 2 + 4)];
 
 
     output[i] = (l0 * s0 + l1 * s1 + l2 * s2 + l3 * s3) >> 15;
 }
 
-thrust::device_vector <s32> postFractiond; 
-thrust::device_vector <s32> outD; 
-thrust::host_vector<s32> postFraction; 
+thrust::device_vector <s32> postFractiond(1000); 
+thrust::device_vector <s32> outD(1000); 
+thrust::host_vector<s32> postFraction(1000);  // faster than resize to pre allocate a extra big vector
 
 extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * output, const s32* input, s32 pitch, const std::array<s16, 512> lut) {
     
-    cudaSetDeviceFlags(cudaDeviceLmemResizeToMax); // doing good?
+   // cudaSetDeviceFlags(cudaDeviceLmemResizeToMax); // doing good?
     
 
     cudaMemcpyToSymbolAsync(lutTd, &lut, sizeof(s16) * (512), 0, cudaMemcpyHostToDevice); //constant memory filled with lut curve values
@@ -55,7 +55,7 @@ extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * out
      values [size of sample_count], index [size of sample_count], input [size of sample_count + 3]   
     */
     
-    postFraction.resize(sample_count * 3 + 4); 
+  //  postFraction.resize(sample_count * 3 + 4); 
     //postFractiond.resize(sample_count * 3 + 4);
 
     postFraction[1] = *fraction;
@@ -79,7 +79,7 @@ extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * out
 
     s32* postFractionP = thrust::raw_pointer_cast(postFractiond.data()); 
 
-    outD.resize(sample_count); //resize premade vector that is in global l2 cache
+  //  outD.resize(sample_count); //resize premade vector that is in global l2 cache
 
     s32* outDP = thrust::raw_pointer_cast(outD.data());
 
@@ -89,7 +89,7 @@ extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * out
 
    // cudaMemPrefetchAsync(outDP, sizeof(s32) * (sample_count), NULL);
 
-    ResampleKernel <<<1, sample_count>>>(outDP, postFractionP);
+    ResampleKernel <<<8, sample_count/8>>>(outDP, postFractionP);
 
     /* KERNEL IS SUPPOSED TO EMULATE THE OPERATION BELOW
     //for (std::size_t i = 0; i < sample_count; i++) {
@@ -109,7 +109,7 @@ extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * out
         out[i] = (l0 * s0 + l1 * s1 + l2 * s2 + l3 * s3) >> 15; // output is s32
     */
     
-    thrust::copy(outD.begin(), outD.end(),
+    thrust::copy(outD.begin(), outD.begin()+sample_count,
                  output); // for now thrust::copy seems like the fastest copy operation
 
 }
