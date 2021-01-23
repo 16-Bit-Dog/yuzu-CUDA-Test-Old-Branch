@@ -38,9 +38,9 @@ __global__ void ResampleKernel(s32* output, s32* fraction) {
     output[i] = (l0 * s0 + l1 * s1 + l2 * s2 + l3 * s3) >> 15;
 }
 
-thrust::device_vector <s32> postFractiond(1000); 
-thrust::device_vector <s32> outD(1000); 
-thrust::host_vector<s32> postFraction(1000);  // faster than resize to pre allocate a extra big vector
+thrust::device_vector <s32> postFractiond(240); 
+thrust::device_vector <s32> outD(240); 
+thrust::host_vector<s32> postFraction(240);  // faster than resize to pre allocate a extra big vector
 
 extern "C" void ResampleCuda(std::size_t sample_count, s32 * fraction, s32 * output, const s32* input, s32 pitch, const std::array<s16, 512> lut) {
     
