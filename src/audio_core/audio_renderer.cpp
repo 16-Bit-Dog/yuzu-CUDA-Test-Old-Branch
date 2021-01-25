@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <vector>
+#include <future>
 
 #include "audio_core/audio_out.h"
 #include "audio_core/audio_renderer.h"
@@ -68,6 +69,12 @@ namespace {
 } // namespace
 
 namespace AudioCore {
+    
+std::future<void> QueueAudioBufferFence1;
+std::vector <std::future<void>> QueueMixedThreadFence2;
+std::future<void> QueueMixedThreadFence3;
+std::future<void> QueueMixedThreadFence4;
+    
 AudioRenderer::AudioRenderer(Core::Timing::CoreTiming& core_timing, Core::Memory::Memory& memory_,
                              AudioCommon::AudioRendererParameter params,
                              Stream::ReleaseCallback&& release_callback,
@@ -88,10 +95,13 @@ AudioRenderer::AudioRenderer(Core::Timing::CoreTiming& core_timing, Core::Memory
         fmt::format("AudioRenderer-Instance{}", instance_number), std::move(release_callback));
     audio_out->StartStream(stream);
 
+    QueueAudioBufferFence1 = std::async(std::launch::async, [&] {
     QueueMixedBuffer(0);
     QueueMixedBuffer(1);
+});
     QueueMixedBuffer(2);
     QueueMixedBuffer(3);
+    QueueAudioBufferFence1.get(); //believe it or not, after 3 tests I found this faster for game load times to prepare the audio renderer 
 }
 
 AudioRenderer::~AudioRenderer() = default;
@@ -314,10 +324,27 @@ void AudioRenderer::QueueMixedBuffer(Buffer::Tag tag) {
     voice_context.UpdateStateByDspShared();
 }
 
+
 void AudioRenderer::ReleaseAndQueueBuffers() {
+
     const auto released_buffers{audio_out->GetTagsAndReleaseBuffers(stream)};
+    
+    QueueMixedThreadFence2.resize(released_buffers.size());
+    s16 tempIndex = 0;
     for (const auto& tag : released_buffers) {
+        
+        QueueMixedThreadFence2[tempIndex] = std::async(std::launch::async, [&] {
+    
         QueueMixedBuffer(tag);
+
+        
+        });    
+        tempIndex++;
+    }
+    while(tempIndex>0) {
+        tempIndex--;
+        QueueMixedThreadFence2[tempIndex].get();
+        
     }
 }
 
