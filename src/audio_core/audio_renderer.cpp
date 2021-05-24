@@ -4,7 +4,6 @@
 
 #include <limits>
 #include <vector>
-#include <future>
 
 #include "audio_core/audio_out.h"
 #include "audio_core/audio_renderer.h"
@@ -69,10 +68,6 @@ namespace {
 } // namespace
 
 namespace AudioCore {
-
-std::future<void> QueueAudioBufferFence1;
-std::vector <std::future<void>> QueueMixedThreadFence2;
-    
 AudioRenderer::AudioRenderer(Core::Timing::CoreTiming& core_timing, Core::Memory::Memory& memory_,
                              AudioCommon::AudioRendererParameter params,
                              Stream::ReleaseCallback&& release_callback,
@@ -214,8 +209,6 @@ void AudioRenderer::QueueMixedBuffer(Buffer::Tag tag) {
     if (!splitter_context.UsingSplitter()) {
         mix_context.SortInfo();
     }
-    
-     QueueMixedThreadFence2.push_back(std::async(std::launch::async, [&] { //auto deallocate... kool   
     // Sort our voices
     voice_context.SortInfo();
 
@@ -225,8 +218,6 @@ void AudioRenderer::QueueMixedBuffer(Buffer::Tag tag) {
     command_generator.GenerateFinalMixCommands();
 
     command_generator.PostCommand();
-    }));
-
     // Base sample size
     std::size_t BUFFER_SIZE{worker_params.sample_count};
     // Samples
@@ -245,7 +236,6 @@ void AudioRenderer::QueueMixedBuffer(Buffer::Tag tag) {
             mix_buffers[i] =
                 command_generator.GetMixBuffer(in_params.buffer_offset + buffer_offsets[i]);
         }
-        QueueMixedThreadFence2[QueueMixedThreadFence2.size() - 1].get();
 
         for (std::size_t i = 0; i < BUFFER_SIZE; i++) {
             if (channel_count == 1) {
@@ -325,19 +315,10 @@ void AudioRenderer::QueueMixedBuffer(Buffer::Tag tag) {
 }
 
 void AudioRenderer::ReleaseAndQueueBuffers() {
-
     const auto released_buffers{audio_out->GetTagsAndReleaseBuffers(stream)};
-    
-    QueueMixedThreadFence2.resize(0)
-        
     for (const auto& tag : released_buffers) {
-        
-        
         QueueMixedBuffer(tag);
-
-        
     }
-
 }
 
 } // namespace AudioCore
